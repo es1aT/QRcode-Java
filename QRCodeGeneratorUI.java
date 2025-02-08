@@ -2,7 +2,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
-
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -18,6 +17,8 @@ import javax.swing.SwingUtilities;
 public class QRCodeGeneratorUI extends JFrame {
     private JTextField urlField;
     private JLabel qrLabel;
+    private Color foregroundColor = Color.BLACK;
+    private Color backgroundColor = Color.WHITE;
 
     public QRCodeGeneratorUI() {
         setTitle("QRコードジェネレーター");
@@ -42,13 +43,8 @@ public class QRCodeGeneratorUI extends JFrame {
         // 色選択ボタン
         JPanel colorPanel = new JPanel();
         colorPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-        Color foregroundColor = Color.BLACK;
-        Color backgroundColor = Color.WHITE;
-        JButton fgColorButton;
-        JButton bgColorButton;
-
-        fgColorButton = new JButton("コードの色");
-        bgColorButton = new JButton("背景色");
+        JButton fgColorButton = new JButton("コードの色");
+        JButton bgColorButton = new JButton("背景色");
 
         colorPanel.add(fgColorButton);
         colorPanel.add(bgColorButton);
@@ -62,13 +58,19 @@ public class QRCodeGeneratorUI extends JFrame {
         qrLabel = new JLabel("", SwingConstants.CENTER);
         add(qrLabel, BorderLayout.CENTER);
 
-        // 色ボタンのクリックイベント
+        // 色ボタンのクリックイベント（選択した色を保存）
         fgColorButton.addActionListener(e -> {
-            JColorChooser.showDialog(this, "コードの色を選択", foregroundColor);
+            Color selectedColor = JColorChooser.showDialog(this, "コードの色を選択", foregroundColor);
+            if (selectedColor != null) {
+                foregroundColor = selectedColor;
+            }
         });
 
         bgColorButton.addActionListener(e -> {
-            JColorChooser.showDialog(this, "背景色を選択", backgroundColor);
+            Color selectedColor = JColorChooser.showDialog(this, "背景色を選択", backgroundColor);
+            if (selectedColor != null) {
+                backgroundColor = selectedColor;
+            }
         });
 
         // 生成ボタンのクリックイベント
@@ -80,7 +82,11 @@ public class QRCodeGeneratorUI extends JFrame {
                     return;
                 }
 
-                BufferedImage qrImage = QRCodeGenerator.generateQRCodeImage(url, 300, 300);
+                // 選択された色をQRコードの生成に反映
+                int qrColor = foregroundColor.getRGB();
+                int bgColor = backgroundColor.getRGB();
+
+                BufferedImage qrImage = QRCodeGenerator.generateQRCodeImage(url, 300, 300, qrColor, bgColor);
                 qrLabel.setIcon(new ImageIcon(qrImage));
 
                 QRCodeGenerator.saveQRCodeImage(qrImage, "qrcode.png");
