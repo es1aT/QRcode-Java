@@ -20,7 +20,7 @@ public class app extends JFrame {
 
     public app() {
         setTitle("QRコードジェネレーター");
-        setSize(400, 500);
+        setSize(600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
