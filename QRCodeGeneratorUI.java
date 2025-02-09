@@ -4,6 +4,7 @@ import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -49,19 +50,29 @@ public class QRCodeGeneratorUI extends JFrame {
         colorPanel.setLayout(new FlowLayout());
         JButton fgColorButton = new JButton("コードの色");
         JButton bgColorButton = new JButton("背景色");
+        JPanel fgColorBox = new JPanel();
+        fgColorBox.setBackground(foregroundColor);
+        fgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        JPanel bgColorBox = new JPanel();
+        bgColorBox.setBackground(backgroundColor);
+        bgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         colorPanel.add(fgColorButton);
+        colorPanel.add(new JLabel("現在の色:"));
+        colorPanel.add(fgColorBox);
         colorPanel.add(bgColorButton);
+        colorPanel.add(new JLabel("現在の色:"));
+        colorPanel.add(bgColorBox);
 
         // ファイル選択ボタン
         JPanel filePanel = new JPanel();
         filePanel.setLayout(new FlowLayout());
         JButton iconButton = new JButton("ファイルを選択する");
         JLabel fileLabel = new JLabel("なし");
-
-        filePanel.add(iconButton);
+        
         filePanel.add(new JLabel("選択されたファイル:"));
         filePanel.add(fileLabel);
+        filePanel.add(iconButton);
 
         // 最上部のパネルに追加
         topPanel.add(inputPanel);
@@ -78,6 +89,7 @@ public class QRCodeGeneratorUI extends JFrame {
             Color selectedColor = JColorChooser.showDialog(this, "コードの色を選択", foregroundColor);
             if (selectedColor != null) {
                 foregroundColor = selectedColor;
+                fgColorBox.setBackground(selectedColor);
             }
         });
 
@@ -85,6 +97,7 @@ public class QRCodeGeneratorUI extends JFrame {
             Color selectedColor = JColorChooser.showDialog(this, "背景色を選択", backgroundColor);
             if (selectedColor != null) {
                 backgroundColor = selectedColor;
+                bgColorBox.setBackground(selectedColor);
             }
         });
  
