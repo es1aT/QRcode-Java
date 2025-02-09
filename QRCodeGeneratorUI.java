@@ -22,8 +22,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class QRCodeGeneratorUI extends JFrame {
     private JTextField urlField;
     private JLabel qrLabel;
+    private int qrSize = 300;
     private Color foregroundColor = Color.BLACK;
     private Color backgroundColor = Color.WHITE;
+    private String iconPath = null;
 
     public QRCodeGeneratorUI() {
         setTitle("QRコードジェネレーター");
@@ -48,8 +50,8 @@ public class QRCodeGeneratorUI extends JFrame {
         // 色選択ボタン
         JPanel colorPanel = new JPanel();
         colorPanel.setLayout(new FlowLayout());
-        JButton fgColorButton = new JButton("コードの色");
-        JButton bgColorButton = new JButton("背景色");
+        JButton fgColorButton = new JButton("コード色選択");
+        JButton bgColorButton = new JButton("背景色選択");
         JPanel fgColorBox = new JPanel();
         fgColorBox.setBackground(foregroundColor);
         fgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
@@ -114,6 +116,7 @@ public class QRCodeGeneratorUI extends JFrame {
             if (returnValue == JFileChooser.APPROVE_OPTION) {   // ファイルが選択された場合
                 File icon = fileChooser.getSelectedFile();
                 fileLabel.setText(icon.getName());  // ラベルにファイルの名前を表示
+                iconPath = icon.getPath();
             }
         });
  
@@ -130,7 +133,12 @@ public class QRCodeGeneratorUI extends JFrame {
                 int qrColor = foregroundColor.getRGB();
                 int bgColor = backgroundColor.getRGB();
 
-                BufferedImage qrImage = QRCodeGenerator.generateQRCodeImage(url, 300, 300, qrColor, bgColor);
+                BufferedImage qrImage = QRCodeGenerator.generateQRCodeImage(url, qrSize, qrSize, qrColor, bgColor);
+
+                if(iconPath != null){
+                    QRCodeGenerator.addIconToQRCode(qrImage, iconPath);
+                }
+
                 qrLabel.setIcon(new ImageIcon(qrImage));
 
                 QRCodeGenerator.saveQRCodeImage(qrImage, "qrcode.png");
