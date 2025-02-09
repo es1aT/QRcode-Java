@@ -8,8 +8,8 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -22,6 +22,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class QRCodeGeneratorUI extends JFrame {
     private JTextField urlField;
+    private JTextField sizeField;
     private JLabel qrLabel;
     private int qrSize = 300;
     private Color foregroundColor = Color.BLACK;
@@ -41,11 +42,13 @@ public class QRCodeGeneratorUI extends JFrame {
         // 入力フィールド
         JPanel inputPanel = new JPanel(new FlowLayout());
         urlField = new JTextField(25);
-        JButton generateButton = new JButton("QRコード生成");
+        sizeField = new JTextField("300",4);
 
         inputPanel.add(new JLabel("URL:"));
         inputPanel.add(urlField);
-        inputPanel.add(generateButton);
+        inputPanel.add(new JLabel("サイズ:"));
+        inputPanel.add(sizeField);
+        inputPanel.add(new JLabel("pxの正方形"));
 
         // 色選択ボタン
         JPanel colorPanel = new JPanel(new FlowLayout());
@@ -81,11 +84,18 @@ public class QRCodeGeneratorUI extends JFrame {
         algoPanel.add(new JLabel("QRコードの見た目 : "));
         algoPanel.add(algorithmComboBox);
 
+        // 生成ボタン
+        JPanel generatePanel = new JPanel();        
+        JButton generateButton = new JButton("QRコード生成");
+        generatePanel.add(generateButton);
+        
+
         // 各パネルを最上部パネルに追加
         topPanel.add(inputPanel);
         topPanel.add(colorPanel);
         topPanel.add(filePanel);
         topPanel.add(algoPanel);
+        topPanel.add(generatePanel);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -131,6 +141,13 @@ public class QRCodeGeneratorUI extends JFrame {
                 String url = urlField.getText();
                 if (url.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "URLを入力してください", "エラー", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try {
+                    qrSize = Integer.parseInt((sizeField.getText()));
+                } catch (NumberFormatException e1) {
+                    JOptionPane.showMessageDialog(this, "無効な数値が入力されました", "エラー", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
