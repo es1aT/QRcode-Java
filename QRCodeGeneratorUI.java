@@ -171,7 +171,7 @@ public class QRCodeGeneratorUI extends JFrame {
                 String selectedAlgorithm = (String) algorithmComboBox.getSelectedItem();
                 if ("丸ドット描画".equals(selectedAlgorithm)) {
                     // otherCircleQRCodeは内部的に25セル×25セル固定なので、1セルのサイズを計算
-                    int dotSize = Math.max(1, qrSize / 25);
+                    int dotSize = Math.max(1, qrSize / 30);
                     qrImage = QRCodeGenerator.otherCircleQRCode(url, dotSize, qrColor, bgColor);
                 } else {
                     qrImage = QRCodeGenerator.generateQRCodeImage(url, qrSize, qrSize, qrColor, bgColor);
