@@ -1,192 +1,168 @@
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.FlowLayout;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.util.EnumMap;
+import java.util.Map;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JColorChooser;
-import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.filechooser.FileNameExtensionFilter;
+public final class QRCodeGenerator {
 
-public class QRCodeGeneratorUI extends JFrame {
-    private JTextField urlField;
-    private JTextField sizeField;
-    private JLabel qrLabel;
-    private int qrSize = 300;
-    private Color foregroundColor = Color.BLACK;
-    private Color backgroundColor = Color.WHITE;
-    private String iconPath = null;
+    private static final String CHARSET = "UTF-8";
+    private static final String IMAGE_FORMAT = "png";
 
-    public QRCodeGeneratorUI() {
-        setTitle("QRコードジェネレーター");
-        setSize(600, 500);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
-
-        // 最上部パネル
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
-
-        // 入力フィールド
-        JPanel inputPanel = new JPanel(new FlowLayout());
-        urlField = new JTextField(25);
-        sizeField = new JTextField("300",4);
-
-        inputPanel.add(new JLabel("URL:"));
-        inputPanel.add(urlField);
-        inputPanel.add(new JLabel("サイズ:"));
-        inputPanel.add(sizeField);
-        inputPanel.add(new JLabel("pxの正方形"));
-
-        // 色選択ボタン
-        JPanel colorPanel = new JPanel(new FlowLayout());
-        JButton fgColorButton = new JButton("コード色選択");
-        JButton bgColorButton = new JButton("背景色選択");
-        JPanel fgColorBox = new JPanel();
-        fgColorBox.setBackground(foregroundColor);
-        fgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        JPanel bgColorBox = new JPanel();
-        bgColorBox.setBackground(backgroundColor);
-        bgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-
-        colorPanel.add(fgColorButton);
-        colorPanel.add(new JLabel("現在の色 : "));
-        colorPanel.add(fgColorBox);
-        colorPanel.add(bgColorButton);
-        colorPanel.add(new JLabel("現在の色 : "));
-        colorPanel.add(bgColorBox);
-
-        // ファイル選択ボタン
-        JPanel filePanel = new JPanel(new FlowLayout());
-        JButton iconButton = new JButton("ファイルを選択する");
-        JLabel fileLabel = new JLabel("なし");
-
-        filePanel.add(new JLabel("選択されたファイル : "));
-        filePanel.add(fileLabel);
-        filePanel.add(iconButton);
-
-        // ★ アルゴリズム選択用のコンボボックスを追加
-        JPanel algoPanel = new JPanel(new FlowLayout());
-        // 選択肢は「通常描画」と「丸ドット描画」
-        JComboBox<String> algorithmComboBox = new JComboBox<>(new String[] { "四角ドット", "丸ドット" });
-        algoPanel.add(new JLabel("QRコードの見た目 : "));
-        algoPanel.add(algorithmComboBox);
-
-        // 生成ボタン
-        JPanel generatePanel = new JPanel();        
-        JButton generateButton = new JButton("QRコード生成");
-        generatePanel.add(generateButton);
-        
-
-        // 各パネルを最上部パネルに追加
-        topPanel.add(inputPanel);
-        topPanel.add(colorPanel);
-        topPanel.add(filePanel);
-        topPanel.add(algoPanel);
-        topPanel.add(generatePanel);
-
-        add(topPanel, BorderLayout.NORTH);
-
-        // QRコード表示用ラベル
-        qrLabel = new JLabel("", SwingConstants.CENTER);
-        add(qrLabel, BorderLayout.CENTER);
-
-        // 色ボタンのクリックイベント
-        fgColorButton.addActionListener(e -> {
-            Color selectedColor = JColorChooser.showDialog(this, "コードの色を選択", foregroundColor);
-            if (selectedColor != null) {
-                foregroundColor = selectedColor;
-                fgColorBox.setBackground(selectedColor);
-            }
-        });
-
-        bgColorButton.addActionListener(e -> {
-            Color selectedColor = JColorChooser.showDialog(this, "背景色を選択", backgroundColor);
-            if (selectedColor != null) {
-                backgroundColor = selectedColor;
-                bgColorBox.setBackground(selectedColor);
-            }
-        });
-
-        // ファイル選択ボタンのクリックイベント
-        iconButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            FileNameExtensionFilter iconFilter = new FileNameExtensionFilter(
-                    "画像ファイル (*.png, *.jpg, *.jpeg, *.gif)", "png", "jpg", "jpeg", "gif");
-            fileChooser.setFileFilter(iconFilter);
-
-            int returnValue = fileChooser.showOpenDialog(this);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File icon = fileChooser.getSelectedFile();
-                fileLabel.setText(icon.getName());
-                iconPath = icon.getPath();
-            }
-        });
-
-        // 生成ボタンのクリックイベント
-        generateButton.addActionListener(e -> {
-            try {
-                String url = urlField.getText();
-                if (url.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "URLを入力してください", "エラー", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    qrSize = Integer.parseInt((sizeField.getText()));
-                } catch (NumberFormatException e1) {
-                    JOptionPane.showMessageDialog(this, "無効な数値が入力されました", "エラー", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                int qrColor = foregroundColor.getRGB();
-                int bgColor = backgroundColor.getRGB();
-
-                BufferedImage qrImage;
-                // コンボボックスの選択に応じたアルゴリズム呼び出し
-                String selectedAlgorithm = (String) algorithmComboBox.getSelectedItem();
-                if ("丸ドット".equals(selectedAlgorithm)) {
-                    // ドットサイズを適当に12固定 (お好みで変更可能)
-                    int dotSize = 12;
-                    qrImage = QRCodeGenerator.otherCircleQRCode(url, dotSize, qrColor, bgColor);
-                } else {
-                    // 従来の四角QR
-                    qrImage = QRCodeGenerator.generateQRCodeImage(url, qrSize, qrSize, qrColor, bgColor);
-                }
-
-                // アイコンを重ねる
-                if (iconPath != null) {
-                    QRCodeGenerator.addIconToQRCode(qrImage, iconPath);
-                }
-
-                // 画面に表示
-                qrLabel.setIcon(new ImageIcon(qrImage));
-
-                // ファイルに保存（固定ファイル名 "qrcode.png"）
-                QRCodeGenerator.saveQRCodeImage(qrImage, "qrcode.png");
-
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "QRコードの生成に失敗しました", "エラー", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        setVisible(true);
+    private QRCodeGenerator() {
+        throw new UnsupportedOperationException("インスタンス化はできません");
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(QRCodeGeneratorUI::new);
+    public static BufferedImage generateQRCodeImage(String text, int width, int height, int qrColor,
+            int backgroundColor) throws WriterException {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
+        hints.put(EncodeHintType.CHARACTER_SET, CHARSET);
+        hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // 高い誤り訂正レベル
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
+        BufferedImage qrImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                qrImage.setRGB(x, y, bitMatrix.get(x, y) ? qrColor : backgroundColor);
+            }
+        }
+        return qrImage;
+    }
+
+    public static BufferedImage addIconToQRCode(BufferedImage qrImage, String iconPath) throws IOException {
+        File iconFile = new File(iconPath);
+        if (!iconFile.exists()) {
+            throw new IOException("アイコン画像が見つかりません: " + iconFile.getAbsolutePath());
+        }
+        BufferedImage icon = ImageIO.read(iconFile);
+        if (icon == null) {
+            throw new IOException("画像ファイルの読み込みに失敗しました: " + iconFile.getAbsolutePath());
+        }
+
+        int qrWidth = qrImage.getWidth();
+        int qrHeight = qrImage.getHeight();
+        // アイコンのサイズをQRコードの1/4に設定（後で微調整可能）
+        int iconSize = qrWidth / 4;
+
+        // アイコンのリサイズ処理
+        BufferedImage scaledIcon = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = scaledIcon.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.drawImage(icon, 0, 0, iconSize, iconSize, null);
+        g2.dispose();
+
+        // QRコードの中央に配置する座標を計算
+        int x = (qrWidth - iconSize) / 2;
+        int y = (qrHeight - iconSize) / 2;
+
+        // QRコードにアイコンを重ね合わせる
+        Graphics2D g = qrImage.createGraphics();
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+        g.drawImage(scaledIcon, x, y, null);
+        g.dispose();
+
+        return qrImage;
+    }
+
+    /**
+     * 既存の固定形式（png）で保存するメソッド
+     */
+    public static void saveQRCodeImage(BufferedImage image, String filePath) throws IOException {
+        saveQRCodeImage(image, filePath, IMAGE_FORMAT);
+    }
+
+    /**
+     * 画像形式を指定して保存するメソッド
+     *
+     * @param image       保存する画像
+     * @param filePath    保存先ファイルパス
+     * @param imageFormat 画像形式 (例: "png" または "jpg")
+     * @throws IOException 保存失敗時の例外
+     */
+    public static void saveQRCodeImage(BufferedImage image, String filePath, String imageFormat) throws IOException {
+        File file = new File(filePath);
+        if (!ImageIO.write(image, imageFormat, file)) {
+            throw new IOException("画像の保存に失敗しました: " + filePath);
+        }
+        System.out.println("QRコードを保存しました: " + file.getAbsolutePath());
+    }
+
+    /**
+     * 黒セル部分を「丸ドット＋接続部分」で描画するQRコード。
+     * 指定のアルゴリズムに従い、隣接する黒セルがある場合はその端も塗りつぶします。
+     *
+     * @param text    QRコードに埋め込む文字列
+     * @param objSize 1セルを何ピクセル四方で描画するか（例：10）
+     * @param qrColor ドットの色（ARGB int）
+     * @param bgColor 背景色（ARGB int）
+     * @return 生成されたBufferedImage
+     * @throws WriterException エンコード失敗時の例外
+     */
+    public static BufferedImage otherCircleQRCode(String text, int objSize, int qrColor, int bgColor)
+            throws WriterException {
+
+        // エンコード設定（誤り訂正レベル Q、余白ゼロ、UTF-8）
+        QRCodeWriter writer = new QRCodeWriter();
+        BitMatrix matrix = writer.encode(text, BarcodeFormat.QR_CODE, 25, 25, Map.of(
+                EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.Q,
+                EncodeHintType.MARGIN, 0,
+                EncodeHintType.CHARACTER_SET, CHARSET));
+
+        int width = matrix.getWidth();
+        int height = matrix.getHeight();
+
+        // 画像バッファ（TYPE_INT_RGBで背景色を明示的に描画）
+        BufferedImage bufferedImage = new BufferedImage(width * objSize, height * objSize, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = bufferedImage.createGraphics();
+
+        // 背景を塗りつぶす
+        g.setColor(new Color(bgColor));
+        g.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+
+        // アンチエイリアスを有効化
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(new Color(qrColor));
+
+        // ドット描画用のサイズ（例：objSize=10なら半分の5を利用）
+        int half = objSize / 2;
+
+        // 各セルを走査して描画
+        for (int hei = 0; hei < height; hei++) {
+            for (int wid = 0; wid < width; wid++) {
+                if (matrix.get(wid, hei)) {
+                    int posX = wid * objSize;
+                    int posY = hei * objSize;
+                    // まず●（丸）を描画
+                    g.fillArc(posX, posY, objSize, objSize, 0, 360);
+                    // 左隣が黒の場合、左側を塗りつぶす
+                    if (wid > 0 && matrix.get(wid - 1, hei)) {
+                        g.fillRect(posX, posY, half, objSize);
+                    }
+                    // 右隣が黒の場合、右側を塗りつぶす
+                    if (wid < width - 1 && matrix.get(wid + 1, hei)) {
+                        g.fillRect(posX + half, posY, half, objSize);
+                    }
+                    // 上セルが黒の場合、上側を塗りつぶす
+                    if (hei > 0 && matrix.get(wid, hei - 1)) {
+                        g.fillRect(posX, posY, objSize, half);
+                    }
+                    // 下セルが黒の場合、下側を塗りつぶす
+                    if (hei < height - 1 && matrix.get(wid, hei + 1)) {
+                        g.fillRect(posX, posY + half, objSize, half);
+                    }
+                }
+            }
+        }
+        g.dispose();
+        return bufferedImage;
     }
 }
