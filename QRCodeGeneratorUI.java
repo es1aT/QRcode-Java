@@ -2,10 +2,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
+import java.io.File;
+
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -13,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class QRCodeGeneratorUI extends JFrame {
     private JTextField urlField;
@@ -32,7 +36,7 @@ public class QRCodeGeneratorUI extends JFrame {
 
         // 入力フィールド
         JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        inputPanel.setLayout(new FlowLayout());
         urlField = new JTextField(25);
         JButton generateButton = new JButton("QRコード生成");
 
@@ -42,16 +46,27 @@ public class QRCodeGeneratorUI extends JFrame {
 
         // 色選択ボタン
         JPanel colorPanel = new JPanel();
-        colorPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        colorPanel.setLayout(new FlowLayout());
         JButton fgColorButton = new JButton("コードの色");
         JButton bgColorButton = new JButton("背景色");
 
         colorPanel.add(fgColorButton);
         colorPanel.add(bgColorButton);
 
+        // ファイル選択ボタン
+        JPanel filePanel = new JPanel();
+        filePanel.setLayout(new FlowLayout());
+        JButton iconButton = new JButton("ファイルを選択する");
+        JLabel fileLabel = new JLabel("なし");
+
+        filePanel.add(iconButton);
+        filePanel.add(new JLabel("選択されたファイル:"));
+        filePanel.add(fileLabel);
+
         // 最上部のパネルに追加
         topPanel.add(inputPanel);
         topPanel.add(colorPanel);
+        topPanel.add(filePanel);
         add(topPanel, BorderLayout.NORTH);
 
         // QRコード表示用ラベル
@@ -72,7 +87,23 @@ public class QRCodeGeneratorUI extends JFrame {
                 backgroundColor = selectedColor;
             }
         });
+ 
+        // ファイル選択ボタンのクリックイベント
+        iconButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
 
+            // 画像ファイルに限定する処理
+            FileNameExtensionFilter iconFilter = new FileNameExtensionFilter(
+                "画像ファイル (*.png, *.jpg, *.jpeg, *.gif)", "png", "jpg", "jpeg", "gif");
+            fileChooser.setFileFilter(iconFilter);
+
+            int returnValue = fileChooser.showOpenDialog(this); // ファイル選択画面を開く
+            if (returnValue == JFileChooser.APPROVE_OPTION) {   // ファイルが選択された場合
+                File icon = fileChooser.getSelectedFile();
+                fileLabel.setText(icon.getName());  // ラベルにファイルの名前を表示
+            }
+        });
+ 
         // 生成ボタンのクリックイベント
         generateButton.addActionListener(e -> {
             try {
