@@ -31,7 +31,6 @@ public final class QRCodeGenerator {
         hints.put(EncodeHintType.CHARACTER_SET, CHARSET);
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // 高い誤り訂正レベル
         BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
-
         MatrixToImageConfig config = new MatrixToImageConfig(qrColor, backgroundColor);
         return MatrixToImageWriter.toBufferedImage(bitMatrix, config);
     }
@@ -41,7 +40,6 @@ public final class QRCodeGenerator {
         if (!iconFile.exists()) {
             throw new IOException("アイコン画像が見つかりません: " + iconFile.getAbsolutePath());
         }
-
         BufferedImage icon = ImageIO.read(iconFile);
         if (icon == null) {
             throw new IOException("画像ファイルの読み込みに失敗しました: " + iconFile.getAbsolutePath());
@@ -49,19 +47,21 @@ public final class QRCodeGenerator {
 
         int qrWidth = qrImage.getWidth();
         int qrHeight = qrImage.getHeight();
-        int iconSize = qrWidth / 5; // QRコードの1/5サイズのアイコン
+        // アイコンのサイズをQRコードの1/3に設定（後で微調整可能）
+        int iconSize = qrWidth / 3;
 
-        // アイコンのリサイズ
+        // アイコンのリサイズ処理
         BufferedImage scaledIcon = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = scaledIcon.createGraphics();
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2.drawImage(icon, 0, 0, iconSize, iconSize, null);
         g2.dispose();
 
+        // QRコードの中央に配置する座標を計算
         int x = (qrWidth - iconSize) / 2;
         int y = (qrHeight - iconSize) / 2;
 
-        // QRコードの中央にアイコンを配置
+        // QRコードにアイコンを重ね合わせる
         Graphics2D g = qrImage.createGraphics();
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         g.drawImage(scaledIcon, x, y, null);
@@ -81,26 +81,26 @@ public final class QRCodeGenerator {
     /**
      * コマンドライン引数でアイコン画像のパスを指定できるようにしたmainメソッド。
      * 引数が存在すればそのパスを、なければ"icon.png"をアイコンとして使用します。
+     * 生成されたQRコードとアイコンが重なった画像は "qrcode.png" として保存されます。
      */
     public static void main(String[] args) {
         try {
             String qrText = "https://example.com";
             int qrSize = 300;
-            // コマンドライン引数でアイコン画像パスを指定できる（例: java QRCodeGenerator myicon.png）
+            // コマンドライン引数でアイコン画像パスを指定可能
             String iconPath = args.length > 0 ? args[0] : "icon.png";
-            String outputPath = "qr_with_icon.png";
+            // 出力ファイル名を "qrcode.png" に設定
+            String outputPath = "qrcode.png";
 
-            // アイコン画像の存在確認
             File iconFile = new File(iconPath);
             if (!iconFile.exists()) {
                 System.err.println("警告: 指定されたアイコン画像が見つかりません -> " + iconFile.getAbsolutePath());
-                // アイコン画像が見つからない場合は、アイコン無しでQRコードを生成
+                // アイコン無しでQRコードを生成
                 BufferedImage qrImage = generateQRCodeImage(qrText, qrSize, qrSize, 0xFF000000, 0xFFFFFFFF);
                 saveQRCodeImage(qrImage, outputPath);
                 System.out.println("アイコンなしのQRコードを生成しました。");
             } else {
                 System.out.println("アイコン画像が見つかりました: " + iconFile.getAbsolutePath());
-                // QRコード生成後、中央に指定アイコンを追加
                 BufferedImage qrImage = generateQRCodeImage(qrText, qrSize, qrSize, 0xFF000000, 0xFFFFFFFF);
                 BufferedImage qrWithIcon = addIconToQRCode(qrImage, iconPath);
                 saveQRCodeImage(qrWithIcon, outputPath);
