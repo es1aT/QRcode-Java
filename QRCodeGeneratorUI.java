@@ -59,10 +59,10 @@ public class QRCodeGeneratorUI extends JFrame {
         bgColorBox.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         colorPanel.add(fgColorButton);
-        colorPanel.add(new JLabel("現在の色:"));
+        colorPanel.add(new JLabel("現在の色 : "));
         colorPanel.add(fgColorBox);
         colorPanel.add(bgColorButton);
-        colorPanel.add(new JLabel("現在の色:"));
+        colorPanel.add(new JLabel("現在の色 : "));
         colorPanel.add(bgColorBox);
 
         // ファイル選択ボタン
@@ -70,15 +70,15 @@ public class QRCodeGeneratorUI extends JFrame {
         JButton iconButton = new JButton("ファイルを選択する");
         JLabel fileLabel = new JLabel("なし");
 
-        filePanel.add(new JLabel("選択されたファイル:"));
+        filePanel.add(new JLabel("選択されたファイル : "));
         filePanel.add(fileLabel);
         filePanel.add(iconButton);
 
         // ★ アルゴリズム選択用のコンボボックスを追加
         JPanel algoPanel = new JPanel(new FlowLayout());
         // 選択肢は「通常描画」と「丸ドット描画」
-        JComboBox<String> algorithmComboBox = new JComboBox<>(new String[] { "通常描画", "丸ドット描画" });
-        algoPanel.add(new JLabel("描画アルゴリズム:"));
+        JComboBox<String> algorithmComboBox = new JComboBox<>(new String[] { "四角ドット", "丸ドット" });
+        algoPanel.add(new JLabel("QRコードの見た目 : "));
         algoPanel.add(algorithmComboBox);
 
         // 各パネルを最上部パネルに追加
@@ -140,7 +140,7 @@ public class QRCodeGeneratorUI extends JFrame {
                 BufferedImage qrImage;
                 // コンボボックスの選択に応じたアルゴリズム呼び出し
                 String selectedAlgorithm = (String) algorithmComboBox.getSelectedItem();
-                if ("丸ドット描画".equals(selectedAlgorithm)) {
+                if ("丸ドット".equals(selectedAlgorithm)) {
                     // ドットサイズを適当に12固定 (お好みで変更可能)
                     int dotSize = 12;
                     qrImage = QRCodeGenerator.otherCircleQRCode(url, dotSize, qrColor, bgColor);
