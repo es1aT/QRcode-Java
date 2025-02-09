@@ -9,11 +9,13 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public final class QRCodeGenerator {
 
@@ -31,8 +33,13 @@ public final class QRCodeGenerator {
         hints.put(EncodeHintType.CHARACTER_SET, CHARSET);
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // 高い誤り訂正レベル
         BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
-        MatrixToImageConfig config = new MatrixToImageConfig(qrColor, backgroundColor);
-        return MatrixToImageWriter.toBufferedImage(bitMatrix, config);
+        BufferedImage qrImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                qrImage.setRGB(x, y, bitMatrix.get(x, y) ? qrColor : backgroundColor);
+            }
+        }
+        return qrImage;
     }
 
     public static BufferedImage addIconToQRCode(BufferedImage qrImage, String iconPath) throws IOException {
@@ -47,8 +54,8 @@ public final class QRCodeGenerator {
 
         int qrWidth = qrImage.getWidth();
         int qrHeight = qrImage.getHeight();
-        // アイコンのサイズをQRコードの1/3に設定（後で微調整可能）
-        int iconSize = qrWidth / 3;
+        // アイコンのサイズをQRコードの1/4に設定（後で微調整可能）
+        int iconSize = qrWidth / 4;
 
         // アイコンのリサイズ処理
         BufferedImage scaledIcon = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
@@ -109,5 +116,75 @@ public final class QRCodeGenerator {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 黒セル部分を「丸ドット＋接続部分」で描画するQRコード。
+     * 指定のアルゴリズムに従い、隣接する黒セルがある場合はその端も塗りつぶします。
+     *
+     * @param text    QRコードに埋め込む文字列
+     * @param objSize 1セルを何ピクセル四方で描画するか（例：10）
+     * @param qrColor ドットの色（ARGB int）
+     * @param bgColor 背景色（ARGB int）
+     * @return 生成されたBufferedImage
+     * @throws WriterException エンコード失敗時の例外
+     */
+    public static BufferedImage otherCircleQRCode(String text, int objSize, int qrColor, int bgColor)
+            throws WriterException {
+
+        // エンコード設定（誤り訂正レベル Q、余白ゼロ、UTF-8）
+        QRCodeWriter writer = new QRCodeWriter();
+        BitMatrix matrix = writer.encode(text, BarcodeFormat.QR_CODE, 25, 25, Map.of(
+                EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.Q,
+                EncodeHintType.MARGIN, 0,
+                EncodeHintType.CHARACTER_SET, CHARSET));
+
+        int width = matrix.getWidth();
+        int height = matrix.getHeight();
+
+        // 画像バッファ（TYPE_INT_RGBで背景色を明示的に描画）
+        BufferedImage bufferedImage = new BufferedImage(width * objSize, height * objSize, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = bufferedImage.createGraphics();
+
+        // 背景を塗りつぶす
+        g.setColor(new Color(bgColor));
+        g.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+
+        // アンチエイリアスを有効化
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(new Color(qrColor));
+
+        // ドット描画用のサイズ（例：objSize=10なら半分の5を利用）
+        int half = objSize / 2;
+
+        // 各セルを走査して描画
+        for (int hei = 0; hei < height; hei++) {
+            for (int wid = 0; wid < width; wid++) {
+                if (matrix.get(wid, hei)) {
+                    int posX = wid * objSize;
+                    int posY = hei * objSize;
+                    // まず●（丸）を描画
+                    g.fillArc(posX, posY, objSize, objSize, 0, 360);
+                    // 左隣が黒の場合、左側を塗りつぶす
+                    if (wid > 0 && matrix.get(wid - 1, hei)) {
+                        g.fillRect(posX, posY, half, objSize);
+                    }
+                    // 右隣が黒の場合、右側を塗りつぶす
+                    if (wid < width - 1 && matrix.get(wid + 1, hei)) {
+                        g.fillRect(posX + half, posY, half, objSize);
+                    }
+                    // 上セルが黒の場合、上側を塗りつぶす
+                    if (hei > 0 && matrix.get(wid, hei - 1)) {
+                        g.fillRect(posX, posY, objSize, half);
+                    }
+                    // 下セルが黒の場合、下側を塗りつぶす
+                    if (hei < height - 1 && matrix.get(wid, hei + 1)) {
+                        g.fillRect(posX, posY + half, objSize, half);
+                    }
+                }
+            }
+        }
+        g.dispose();
+        return bufferedImage;
     }
 }
